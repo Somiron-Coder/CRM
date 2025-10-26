@@ -1,0 +1,431 @@
+import React from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  Snackbar,
+  Alert,
+  InputAdornment,
+  Skeleton,
+  Paper,
+  Typography,
+  Chip,
+  Fade,
+} from '@mui/material';
+import { Add as AddIcon, Download as DownloadIcon, Search as SearchIcon } from '@mui/icons-material';
+import { supabase } from '../lib/supabase';
+import { DataGrid } from '../components/DataGrid';
+import { useForm } from 'react-hook-form';
+import { useAuthStore } from '../store/auth';
+import { SEO } from '../components/SEO';
+
+interface Employee {
+  id: string;
+  position: string;
+  department: string;
+  salary: number;
+  join_date: string;
+  skills: string[];
+  profiles: {
+    name: string;
+    email: string;
+    role: string;
+  };
+}
+
+interface EmployeeFormData {
+  name: string;
+  email: string;
+  position: string;
+  department: string;
+  salary: number;
+  skills: string;
+}
+
+export function exportToCSV(rows: any[], columns: any[], filename: string) {
+  const header = columns.map((col: any) => col.label).join(',');
+  const csvRows = rows.map(row =>
+    columns.map((col: any) => {
+      const value = col.id.split('.').reduce((acc: any, key: string) => acc?.[key], row);
+      return typeof value === 'string' ? `"${value.replace(/"/g, '""')}` : value;
+    }).join(',')
+  );
+  const csvContent = [header, ...csvRows].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const Employees: React.FC = () => {
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [selectedEmployee, setSelectedEmployee] = React.useState<Employee | null>(null);
+  const [error, setError] = React.useState<string>('');
+  const [search, setSearch] = React.useState('');
+  const queryClient = useQueryClient();
+  const { register, handleSubmit, reset, setValue } = useForm<EmployeeFormData>();
+  const { isAuthInitialized } = useAuthStore();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const departments = ['Engineering', 'Design', 'Marketing', 'Sales', 'HR'];
+
+  // Fetch employees (only after auth is initialized)
+  const { data: employees = [], isLoading } = useQuery(
+    ['employees'],
+    async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*, profiles(name, email, role)');
+      if (error) throw error;
+      return data as Employee[];
+    },
+    { enabled: isAuthInitialized }
+  );
+
+  // Loading state with skeleton
+  if (!isAuthInitialized || isLoading) {
+    return (
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: 3 }}>
+        <SEO title="Employees" />
+        <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          {[1, 2, 3].map((i) => (
+            <Skeleton
+              key={i}
+              variant="rectangular"
+              sx={{ mb: 2, borderRadius: 1 }}
+              height={60}
+            />
+          ))}
+        </Paper>
+      </Box>
+    );
+  }
+
+  // Filtered employees
+  const filteredEmployees = employees.filter((emp) => {
+    const searchLower = search.toLowerCase();
+    return (
+      emp.profiles.name.toLowerCase().includes(searchLower) ||
+      emp.profiles.email.toLowerCase().includes(searchLower) ||
+      emp.position.toLowerCase().includes(searchLower) ||
+      emp.department.toLowerCase().includes(searchLower) ||
+      emp.skills.join(',').toLowerCase().includes(searchLower)
+    );
+  });
+
+  const handleOpenDialog = (employee?: Employee) => {
+    if (employee) {
+      setSelectedEmployee(employee);
+      setValue('position', employee.position);
+      setValue('department', employee.department);
+      setValue('salary', employee.salary);
+      setValue('skills', employee.skills.join(', '));
+    } else {
+      setSelectedEmployee(null);
+      reset();
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setSelectedEmployee(null);
+    reset();
+  };
+
+  // Create/Update employee
+  const mutation = useMutation(
+    async (data: EmployeeFormData) => {
+      if (selectedEmployee) {
+        const { error } = await supabase
+          .from('employees')
+          .update({
+            position: data.position,
+            department: data.department,
+            salary: data.salary,
+            skills: data.skills.split(',').map(s => s.trim()),
+          })
+          .eq('id', selectedEmployee.id);
+
+        if (error) throw error;
+      } else {
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+          email: data.email,
+          password: 'temppass123',
+          email_confirm: true,
+        });
+
+        if (authError) throw authError;
+
+        if (authData.user) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: authData.user.id,
+                email: data.email,
+                name: data.name,
+                role: 'employee',
+              },
+            ]);
+
+          if (profileError) throw profileError;
+
+          const { error: employeeError } = await supabase
+            .from('employees')
+            .insert([
+              {
+                profile_id: authData.user.id,
+                position: data.position,
+                department: data.department,
+                salary: data.salary,
+                skills: data.skills.split(',').map(s => s.trim()),
+              },
+            ]);
+
+          if (employeeError) throw employeeError;
+        }
+      }
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(['employees']);
+        handleCloseDialog();
+      },
+      onError: (error: Error) => {
+        setError(error.message);
+      },
+    }
+  );
+
+  return (
+    <Fade in={mounted}>
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: 3 }}>
+        <SEO 
+          title="Employees" 
+          description="Manage your agency's employees - view, add, edit, and track employee information"
+          keywords="employees, team management, staff, human resources"
+        />
+        
+        <Paper elevation={0} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+          <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>
+              Employees
+              <Typography component="span" color="text.secondary" sx={{ ml: 1, fontSize: '1rem' }}>
+                ({filteredEmployees.length})
+              </Typography>
+            </Typography>
+            
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                placeholder="Search employees..."
+                size="small"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: 'text.secondary' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ 
+                  width: 300,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2,
+                    '&:hover fieldset': {
+                      borderColor: 'primary.main',
+                    },
+                  },
+                }}
+              />
+              
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenDialog()}
+                sx={{ px: 3 }}
+              >
+                Add Employee
+              </Button>
+              
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={() => exportToCSV(employees, [
+                  { id: 'profiles.name', label: 'Name' },
+                  { id: 'profiles.email', label: 'Email' },
+                  { id: 'position', label: 'Position' },
+                  { id: 'department', label: 'Department' },
+                  { id: 'salary', label: 'Salary' },
+                  { id: 'skills', label: 'Skills' },
+                ], 'employees.csv')}
+                sx={{ px: 3 }}
+              >
+                Export
+              </Button>
+            </Box>
+          </Box>
+
+          <DataGrid
+            rows={filteredEmployees}
+            columns={[
+              { id: 'profiles.name', label: 'Name' },
+              { id: 'profiles.email', label: 'Email' },
+              { id: 'position', label: 'Position' },
+              { 
+                id: 'department', 
+                label: 'Department',
+                render: (value: string) => (
+                  <Chip 
+                    label={value} 
+                    size="small"
+                    sx={{ 
+                      backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                      color: 'primary.main',
+                      fontWeight: 500
+                    }} 
+                  />
+                )
+              },
+              { 
+                id: 'salary', 
+                label: 'Salary',
+                format: (value: number) => `$${value.toLocaleString()}`,
+              },
+              {
+                id: 'skills',
+                label: 'Skills',
+                render: (value: string[]) => (
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {value.map((skill) => (
+                      <Chip
+                        key={skill}
+                        label={skill}
+                        size="small"
+                        sx={{ 
+                          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                          color: 'secondary.main',
+                          fontWeight: 500
+                        }}
+                      />
+                    ))}
+                  </Box>
+                ),
+              },
+            ]}
+            onEdit={handleOpenDialog}
+          />
+        </Paper>
+
+        <Dialog 
+          open={isDialogOpen} 
+          onClose={handleCloseDialog}
+          PaperProps={{
+            sx: { borderRadius: 2 }
+          }}
+        >
+          <DialogTitle>
+            {selectedEmployee ? 'Edit Employee' : 'Add New Employee'}
+          </DialogTitle>
+          <form onSubmit={handleSubmit((data) => mutation.mutate(data))}>
+            <DialogContent>
+              <TextField
+                fullWidth
+                label="Name"
+                {...register('name')}
+                margin="normal"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                {...register('email')}
+                margin="normal"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label="Position"
+                {...register('position')}
+                margin="normal"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                select
+                label="Department"
+                {...register('department')}
+                margin="normal"
+                sx={{ mb: 2 }}
+              >
+                {departments.map((dept) => (
+                  <MenuItem key={dept} value={dept}>
+                    {dept}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                fullWidth
+                label="Salary"
+                type="number"
+                {...register('salary')}
+                margin="normal"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label="Skills (comma-separated)"
+                {...register('skills')}
+                margin="normal"
+                sx={{ mb: 2 }}
+              />
+            </DialogContent>
+            <DialogActions sx={{ p: 2.5, pt: 0 }}>
+              <Button onClick={handleCloseDialog}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={mutation.isLoading}
+              >
+                {selectedEmployee ? 'Update' : 'Add'}
+              </Button>
+            </DialogActions>
+          </form>
+        </Dialog>
+
+        <Snackbar 
+          open={!!error} 
+          autoHideDuration={6000} 
+          onClose={() => setError('')}
+        >
+          <Alert 
+            onClose={() => setError('')} 
+            severity="error" 
+            sx={{ width: '100%' }}
+          >
+            {error}
+          </Alert>
+        </Snackbar>
+      </Box>
+    </Fade>
+  );
+};
+
+export default Employees;

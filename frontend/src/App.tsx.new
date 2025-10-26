@@ -1,0 +1,78 @@
+import React, { Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider, CssBaseline, Box, CircularProgress } from '@mui/material';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { HelmetProvider } from 'react-helmet-async';
+import theme from './theme';
+import { AuthProvider } from './components/AuthProvider';
+import Layout from './components/Layout';
+import PrivateRoute from './components/PrivateRoute';
+import { SEO } from './components/SEO';
+
+// Lazy load components
+const Login = React.lazy(() => import('./pages/Login'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Employees = React.lazy(() => import('./pages/Employees'));
+const Clients = React.lazy(() => import('./pages/Clients'));
+const Projects = React.lazy(() => import('./pages/Projects'));
+const Revenue = React.lazy(() => import('./pages/Revenue'));
+
+// Configure React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000,
+    },
+  },
+});
+
+// Loading spinner
+const LoadingSpinner: React.FC = () => (
+  <Box sx={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100vh',
+    bgcolor: 'background.default'
+  }}>
+    <CircularProgress />
+  </Box>
+);
+
+function App() {
+  return (
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Router>
+            <AuthProvider>
+              <SEO 
+                title="NEXUVA CRM"
+                description="Modern agency management solution"
+              />
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route element={<PrivateRoute />}>
+                    <Route element={<Layout />}>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/employees" element={<Employees />} />
+                      <Route path="/clients" element={<Clients />} />
+                      <Route path="/projects" element={<Projects />} />
+                      <Route path="/revenue" element={<Revenue />} />
+                    </Route>
+                  </Route>
+                </Routes>
+              </Suspense>
+            </AuthProvider>
+          </Router>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  );
+}
+
+export default App;
