@@ -2,17 +2,5 @@
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "framework": "nextjs",
-  "env": [
-    {
-      "key": "MONGODB_URI",
-      "description": "MongoDB connection string",
-      "value": ""
-    },
-    {
-      "key": "JWT_SECRET",
-      "description": "JWT secret key for authentication",
-      "value": ""
-    }
-  ]
+  "framework": "nextjs"
 }
