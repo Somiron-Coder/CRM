@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Menu, X, LogOut, LayoutDashboard, Users, UserCheck, DollarSign } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
@@ -31,73 +35,59 @@ export default function DashboardLayout({
     return null;
   }
 
+  const menuItems = [
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/dashboard/clients', label: 'Clients', icon: Users },
+    { href: '/dashboard/employees', label: 'Employees', icon: UserCheck },
+    { href: '/dashboard/revenue', label: 'Revenue', icon: DollarSign },
+  ];
+
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-slate-50">
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gray-900 text-white transition-all duration-300 flex flex-col`}>
-        <div className="p-4 flex items-center justify-between">
-          {sidebarOpen && <h1 className="text-xl font-bold">AgencyCRM</h1>}
+      <div className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white transition-all duration-300 flex flex-col shadow-xl border-r border-slate-700`}>
+        <div className="p-6 flex items-center justify-between">
+          {sidebarOpen && (
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">CRM</span>
+            </div>
+          )}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1 hover:bg-gray-800 rounded"
+            className="p-1.5 hover:bg-slate-800 rounded-lg transition"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
-          <Link
-            href="/dashboard"
-            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 5h4" />
-            </svg>
-            {sidebarOpen && <span>Dashboard</span>}
-          </Link>
-
-          <Link
-            href="/dashboard/clients"
-            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.856-1.488M15 10a3 3 0 11-6 0 3 3 0 016 0zM6 20h12a3 3 0 003-3v-2" />
-            </svg>
-            {sidebarOpen && <span>Clients</span>}
-          </Link>
-
-          <Link
-            href="/dashboard/employees"
-            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 8.048M7 14H5a2 2 0 00-2 2v2a2 2 0 002 2h14a2 2 0 002-2v-2a2 2 0 00-2-2h-2" />
-            </svg>
-            {sidebarOpen && <span>Employees</span>}
-          </Link>
-
-          <Link
-            href="/dashboard/revenue"
-            className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {sidebarOpen && <span>Revenue</span>}
-          </Link>
+        <nav className="flex-1 px-3 py-4 space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition text-slate-200 hover:text-white group"
+              >
+                <Icon className="w-5 h-5 group-hover:text-blue-400 transition" />
+                {sidebarOpen && <span className="font-medium">{item.label}</span>}
+              </Link>
+            );
+          })}
         </nav>
 
-        <div className="p-4 border-t border-gray-800">
+        <div className="p-3 border-t border-slate-700">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition text-red-400"
+            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-900/30 transition text-red-300 hover:text-red-200"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            {sidebarOpen && <span>Logout</span>}
+            <LogOut className="w-5 h-5" />
+            {sidebarOpen && <span className="font-medium">Logout</span>}
           </button>
         </div>
       </div>
@@ -105,23 +95,41 @@ export default function DashboardLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <div className="bg-white shadow">
-          <div className="px-6 py-4 flex justify-between items-center">
-            <h2 className="text-2xl font-semibold text-gray-900">Dashboard</h2>
-            <div className="flex items-center space-x-4">
-              <span className="text-gray-600">Welcome, {user.name || user.email}</span>
-              <img
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`}
-                alt="Avatar"
-                className="w-10 h-10 rounded-full"
-              />
+        <div className="bg-white shadow-sm border-b border-slate-200">
+          <div className="px-8 py-4 flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
+              <p className="text-sm text-slate-500 mt-1">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+            </div>
+            <div className="flex items-center space-x-6">
+              <div className="text-right">
+                <p className="text-sm font-medium text-slate-900">{user.name || user.email}</p>
+                <p className="text-xs text-slate-500">Administrator</p>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Avatar className="cursor-pointer hover:opacity-80 transition">
+                    <AvatarImage 
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} 
+                      alt="Avatar"
+                    />
+                    <AvatarFallback>{user.email.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
 
         {/* Page Content */}
         <div className="flex-1 overflow-auto">
-          <div className="p-6">
+          <div className="p-8">
             {children}
           </div>
         </div>
