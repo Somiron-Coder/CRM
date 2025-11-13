@@ -1,36 +1,148 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CRM System for Your Agency
 
-## Getting Started
+A production-level Customer Relationship Management (CRM) system built with **Next.js**, **TypeScript**, **MongoDB**, and **Tailwind CSS**. Manage clients, employees, and revenue tracking with an intuitive admin dashboard.
 
-First, run the development server:
+## Tech Stack
+
+- **Frontend**: Next.js 14+ with App Router
+- **Language**: TypeScript
+- **Database**: MongoDB with Mongoose ODM
+- **Styling**: Tailwind CSS
+- **Authentication**: JWT + bcryptjs
+- **API**: Next.js API Routes (RESTful)
+- **Linting**: ESLint
+
+## Features
+
+✅ Client Management (Create, Read, Update, Delete)
+✅ Employee Management with roles and departments
+✅ Revenue Tracking with invoices
+✅ User Authentication (Admin, Manager, Employee roles)
+✅ RESTful API endpoints
+✅ MongoDB integration
+✅ Responsive UI with Tailwind CSS
+
+## Prerequisites
+
+- Node.js 18+ and npm
+- MongoDB Atlas account (or local MongoDB)
+- Git
+
+## Setup Instructions
+
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Configure MongoDB
+
+1. Create a MongoDB Atlas account at [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+2. Create a free cluster
+3. Get your connection string (mongodb+srv://...)
+4. Add your IP address to the network access list
+
+### 3. Environment Variables
+
+Update `.env.local` with your MongoDB connection string:
+
+```env
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/crm_db?retryWrites=true&w=majority
+JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
+NEXT_PUBLIC_API_URL=http://localhost:3000
+```
+
+### 4. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API Endpoints
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Clients
+- `GET /api/clients` - List all clients
+- `POST /api/clients` - Create new client
+- `GET /api/clients/[id]` - Get client details
+- `PUT /api/clients/[id]` - Update client
+- `DELETE /api/clients/[id]` - Delete client
 
-## Learn More
+### Employees
+- `GET /api/employees` - List all employees
+- `POST /api/employees` - Create new employee
+- `GET /api/employees/[id]` - Get employee details
+- `PUT /api/employees/[id]` - Update employee
+- `DELETE /api/employees/[id]` - Delete employee
 
-To learn more about Next.js, take a look at the following resources:
+### Revenue
+- `GET /api/revenue` - List all revenue records
+- `POST /api/revenue` - Create new revenue record
+- `GET /api/revenue/[id]` - Get revenue details
+- `PUT /api/revenue/[id]` - Update revenue
+- `DELETE /api/revenue/[id]` - Delete revenue record
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── clients/
+│   │   ├── employees/
+│   │   └── revenue/
+│   ├── layout.tsx
+│   └── page.tsx
+├── lib/
+│   └── db.ts (MongoDB connection)
+├── models/
+│   ├── Client.ts
+│   ├── Employee.ts
+│   ├── Revenue.ts
+│   └── User.ts
+└── components/ (to be created)
+```
 
-## Deploy on Vercel
+## Database Models
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Client Model
+- name, email, phone, company
+- address, city, state, zipCode, country
+- notes, status (active/inactive/prospect)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Employee Model
+- firstName, lastName, email, phone
+- position, department, salary, joinDate
+- status (active/inactive/on-leave)
+- address details
+
+### Revenue Model
+- clientId (reference), amount, currency
+- description, date, status (pending/completed/cancelled)
+- paymentMethod, invoiceNumber, dueDate
+
+### User Model
+- name, email, password (hashed)
+- role (admin/manager/employee)
+
+## Build for Production
+
+```bash
+npm run build
+npm start
+```
+
+## Next Steps
+
+1. ✅ Set up MongoDB connection with your credentials
+2. ⬜ Create React components for dashboard
+3. ⬜ Implement authentication system
+4. ⬜ Build admin dashboard UI
+5. ⬜ Add data visualization charts
+6. ⬜ Deploy to production (Vercel, AWS, etc.)
+
+## License
+
+MIT
